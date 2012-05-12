@@ -1,4 +1,6 @@
 #include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
 #include <fcntl.h>
 #include <termios.h>
 #include <unistd.h>
@@ -159,7 +161,11 @@ int main(int argc, char **argv)
   }
   fprintf(stderr, "connecting to %s (%s)", device, speedname);
 
+#ifdef O_DIRECT
   fd = open(device, O_RDWR | O_NOCTTY | O_NDELAY | O_DIRECT | O_SYNC );
+#else  /* O_DIRECT is not available on darwin (OS X), use F_NOCACHE instead below */
+  fd = open(device, O_RDWR | O_NOCTTY | O_NDELAY | O_SYNC );
+#endif
   if (fd <0) {
     fprintf(stderr, "\n");
     perror(device);
@@ -168,9 +174,15 @@ int main(int argc, char **argv)
   fprintf(stderr, " [OK]\n");
 
   if (fcntl(fd, F_SETFL, 0) < 0) {
-    perror("could not set fcntl");
+    perror("could not set fcntl F_SETFL");
     exit(-1);
   }
+#ifndef O_DIRECT /* O_DIRECT is not available on darwin (OS X), use F_NOCACHE instead */
+  if (fcntl(fd, F_NOCACHE, 1) < 0) {
+    perror("could not set fcntl F_NOCACHE");
+    exit(-1);
+  }
+#endif
 
   if (tcgetattr(fd, &options) < 0) {
     perror("could not get options");
