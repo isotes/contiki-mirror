@@ -55,9 +55,11 @@ public class MoteFinder {
 
   public static final String MOTELIST_WINDOWS = "./tools/motelist-windows.exe";
   public static final String MOTELIST_LINUX = "./tools/motelist-linux";
+  public static final String MOTELIST_DARWIN = "./tools/motelist-darwin";
 
   private final Pattern motePattern;
   private final boolean isWindows;
+  private final boolean isDarwin;
   private Process moteListProcess;
 //  private boolean hasVerifiedProcess;
   private ArrayList<String> comList = new ArrayList<String>();
@@ -66,7 +68,13 @@ public class MoteFinder {
   public MoteFinder() {
     String osName = System.getProperty("os.name", "").toLowerCase();
     isWindows = osName.startsWith("win");
-    motePattern = Pattern.compile("\\s(COM|/dev/[a-zA-Z]+)(\\d+)\\s");
+    isDarwin = osName.equals("mac os x");
+    if (isDarwin) {
+        // could be simplified but use this to keep interpreting code in parseIncomingLine() the same
+        motePattern = Pattern.compile("\\s(/dev/)([-.a-zA-Z0-9]+)\\s"); // /dev/tty.usbserial-XXXXXXXX
+    } else {
+        motePattern = Pattern.compile("\\s(COM|/dev/[a-zA-Z]+)(\\d+)\\s");
+    }
   }
 
   public String[] getMotes() throws IOException {
@@ -88,6 +96,8 @@ public class MoteFinder {
     String fullCommand;
     if (isWindows) {
       fullCommand = MOTELIST_WINDOWS;
+    } else if (isDarwin) {
+      fullCommand = MOTELIST_DARWIN;
     } else {
       fullCommand = MOTELIST_LINUX;
     }
